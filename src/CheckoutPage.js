@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import MpesaPaymentForm from '../components/payments/MpesaPaymentForm';
-import PaymentStatus from '../components/payments/PaymentStatus';
-import usePaymentStatus from '../components/payments/usePaymentStatus';
+import MpesaPaymentForm from './MpesaPaymentForm';
+import PaymentStatus from './PaymentStatus';
+import usePaymentStatus from './usePaymentStatus';
 
 const CheckoutPage = () => {
   const { orderId } = useParams();
