@@ -6,6 +6,7 @@ import CustomerDashboard from './CustomerDashboard';
 import AdminDashboard from './AdminDashboard';
 import Home from './Home'; 
 import './index.css';
+import './App.css'; // Assuming you have some global styles
 
 const App = () => {
   const { user } = useAuth();

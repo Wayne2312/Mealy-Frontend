@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import LoginForm from './LoginForm';
+import './App.css'; // Assuming you have some styles for Home
 
 function Home() {
   const [showLoginForm, setShowLoginForm] = useState(false);
