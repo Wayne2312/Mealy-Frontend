@@ -1,14 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
-// Ensure BACKEND_URL is correctly set in your environment
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// Configure Axios to send cookies with cross-origin requests
 axios.defaults.withCredentials = true;
 
-// Auth Context
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
