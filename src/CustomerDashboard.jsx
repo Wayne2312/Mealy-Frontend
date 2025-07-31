@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from './AuthProvider';
 import axios from 'axios';
+import { useAuth } from './AuthProvider';
+import { useNavigate, Link } from 'react-router-dom';
+import usePaymentStatus from './usePaymentStatus';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -11,12 +13,12 @@ const CustomerDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('menu');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchTodaysMenu();
-    fetchOrders();
-  }, []);
-
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [currentPaymentOrderId, setCurrentPaymentOrderId] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState('pending'); // Or initial state
+  const [paymentError, setPaymentError] = useState(null);
+  const navigate = useNavigate();
+  
   const fetchTodaysMenu = async () => {
     try {
       const response = await axios.get(`${API}/daily-menu/today/menu/`);
@@ -35,6 +37,28 @@ const CustomerDashboard = () => {
     }
   };
 
+  useEffect(() => {
+    fetchTodaysMenu();
+    fetchOrders();
+  }, []);
+
+
+  const { status: polledStatus, error: polledError } = usePaymentStatus(currentPaymentOrderId, paymentStatus);
+    useEffect(() => {
+      if (polledStatus && polledStatus !== paymentStatus) {
+          setPaymentStatus(polledStatus);
+      }
+      if (polledError && polledError !== paymentError) {
+          setPaymentError(polledError);
+      }
+      if (polledStatus === 'completed' || polledStatus === 'failed') {
+          setPaymentProcessing(false);
+          fetchOrders();
+      }
+    }, [polledStatus, polledError, paymentStatus, paymentError, fetchOrders]);
+
+
+
   const placeOrder = async (mealId) => {
     setLoading(true);
     try {
@@ -48,23 +72,112 @@ const CustomerDashboard = () => {
     }
   };
 
-  const processPayment = async (orderId) => {
-    const phone = prompt('Enter your M-Pesa phone number (254XXXXXXXXX):');
+  const formatPhoneNumber = (phone) => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) {
+      return '254' + cleaned.substring(1);
+    }
+    if (cleaned.startsWith('7') && cleaned.length === 9) {
+      return '254' + cleaned;
+    }
+    return cleaned;
+  };
+
+  const initiateMpesaPayment = async (orderId) => {
+    const phone = prompt('Enter your M-Pesa phone number (e.g., 0712345678):');
     if (!phone) return;
 
+    const formattedPhone = formatPhoneNumber(phone);
+    if (!formattedPhone.startsWith('254') || formattedPhone.length !== 12) {
+      alert('Please enter a valid Kenyan phone number (e.g., 0712345678)');
+      return;
+    }
+    setPaymentProcessing(true);
+    setCurrentPaymentOrderId(orderId);
+    setPaymentStatus('pending');
+    setPaymentError(null)
+    setPaymentProcessing(true);
+    try {
+      const response = await axios.post(`${API}/mpesa-payment/`, {
+        order_id: orderId,
+        phone: formattedPhone
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      });
+
+      if (response.data.success) {
+        console.log(`Payment request sent to ${formattedPhone}. Please complete the transaction on your phone.`);
+        
+      } else {
+        setPaymentStatus('failed');
+        setPaymentError(response.data.error || 'Payment initiation failed');
+        setPaymentProcessing(false);
+        alert(response.data.error || 'Payment initiation failed');
+      }
+    } catch (error) {
+      alert('Payment failed: ' + (error.response?.data?.error || 'Unknown error'));
+    } finally {
+      setPaymentProcessing(false);
+    }
+  };
+
+  const pollPaymentStatus = async (orderId) => {
+    let attempts = 0;
+    const maxAttempts = 12;
+    
+    const checkStatus = async () => {
+      attempts++;
+      try {
+        const response = await axios.get(`${API}/orders/${orderId}/`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          }
+        });
+
+        if (response.data.payment_status === 'completed') {
+          await fetchOrders();
+          alert('Payment completed successfully!');
+          return true;
+        } else if (response.data.payment_status === 'failed') {
+          alert('Payment failed: ' + (response.data.payment_error || 'Unknown error'));
+          return true;
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(checkStatus, 5000); 
+      } else {
+        alert('Payment status check timed out. Please verify your payment and refresh the page.');
+      }
+      return false;
+    };
+
+    await checkStatus();
+  };
+
+
+  const cancelOrder = async (orderId) => {
+    const confirmCancel = window.confirm("Are you sure you want to cancel this order?");
+    if (!confirmCancel) return;
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/payment/mpesa/`, { 
-        order_id: orderId,
-        phone: phone
+      const response = await axios.post(`${API}/orders/cancel/`, { 
+        order_id: orderId
       });
-      
-      if (response.data.success) {
-        alert(`Payment successful! Transaction ID: ${response.data.transaction_id}`);
+      if (response.data.message) {
+        alert(response.data.message);
         await fetchOrders();
       }
     } catch (error) {
-      alert('Payment failed: ' + (error.response?.data?.detail || 'Unknown error'));
+      if (error.response?.data?.error) {
+         alert('Cancellation failed: ' + error.response.data.error);
+      } else {
+         alert('Cancellation failed: ' + (error.response?.data?.detail || 'Unknown error'));
+      }
     } finally {
       setLoading(false);
     }
@@ -137,7 +250,7 @@ const CustomerDashboard = () => {
                         disabled={loading}
                         className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50"
                       >
-                        Order Now
+                        {loading ? 'Ordering...' : 'Order Now'}
                       </button>
                     </div>
                   </div>
@@ -165,30 +278,55 @@ const CustomerDashboard = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">{order.meal_name}</h3>
-                      <p className="text-gray-600">Quantity: {order.quantity} × KSh {order.price}</p>
-                      <p className="text-sm text-gray-500">Order Date: {order.date}</p>
+                      <p>Total: KSh {order.total_amount}</p> 
+                      <p className="text-sm text-gray-500">
+                        Ordered on: {new Date(order.order_date).toLocaleString()}
+                      </p>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-orange-600 mb-2">KSh {order.total}</div>
                       <div className="flex items-center space-x-2">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                           order.status === 'confirmed' 
-                            ? 'bg-green-100 text-green-800'
-                            : order.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {order.status}
+                          ? 'bg-green-100 text-green-800'
+                          : order.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : order.status === 'cancelled'
+                          ? 'bg-red-100 text-red-800'
+                          : order.status === 'completed'
+                          ? 'bg-blue-100 text-blue-800'
+                          : order.status === 'preparing' || order.status === 'ready'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
-                        {order.payment_status === 'pending' && (
-                          <button
-                            onClick={() => processPayment(order.id)}
-                            disabled={loading}
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-md text-sm font-medium disabled:opacity-50"
-                          >
-                            Pay Now
-                          </button>
-                        )}
+                        {order.status === 'pending' || order.status === 'confirmed' ? (
+                          <>
+                              {order.payment_status === 'pending' && (
+                                <button
+                                  onClick={() => initiateMpesaPayment(order.id)}
+                                  disabled={paymentProcessing}
+                                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md text-sm font-medium disabled:opacity-50"
+                                >
+                                  {paymentProcessing ? 'Processing...' : 'Pay with M-Pesa'}
+                                </button>
+                              )}
+                              {order.payment_status !== 'completed' && (
+                                <button
+                                  onClick={() => cancelOrder(order.id)}
+                                  disabled={loading}
+                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium disabled:opacity-50"
+                                >
+                                  Cancel Order
+                                </button>
+                              )}
+                            </>
+                          ) : order.status === 'cancelled' ? (
+                            <span className="text-sm text-gray-500 italic">Order Cancelled</span>
+                          ) : order.status === 'completed' ? (
+                            <span className="text-sm text-gray-500 italic">Order Completed</span>
+                          ) : null}
                       </div>
                     </div>
                   </div>
