@@ -84,8 +84,6 @@ const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-// Custom hook to access auth context
 const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
