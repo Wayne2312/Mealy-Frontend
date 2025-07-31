@@ -11,42 +11,33 @@ const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log('Token changed:', token);
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchUser().finally(() => {
-        setLoading(false);
-        console.log('User fetch complete, user:', user);
-      });
+      fetchUser();
     } else {
       setUser(null);
       delete axios.defaults.headers.common['Authorization'];
-      setLoading(false);
-      console.log('No token, user cleared');
     }
   }, [token]);
 
-  const fetchUser = async () => {
-    try {
-      const response = await axios.get(`${API}/auth/me/`);
-      console.log('fetchUser response:', response.data);
-      setUser(response.data);
-    } catch (error) {
-      console.error("Error fetching user:", error.response?.status, error.response?.data);
-      if (error.response?.status === 401) {
-        logout();
-      }
-    }
-  };
+const fetchUser = async () => {
+  try {
+    const response = await axios.get(`${API}/auth/me/`);
+    console.log('fetchUser response:', response.data);
+    setUser(response.data);
+  } catch (error) {
+    console.error("Error fetching user:", error.response?.status, error.response?.data);
+    logout();
+  }
+};
 
   const login = async (email, password) => {
     setLoading(true);
     try {
       const response = await axios.post(`${API}/auth/login/`, { email, password });
-      console.log('Login response:', response.data);
       const { access_token, user: userData } = response.data;
       localStorage.setItem('token', access_token);
       setToken(access_token);
@@ -64,13 +55,9 @@ const AuthProvider = ({ children }) => {
   const register = async (email, password, name, role = 'customer') => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/auth/register/`, {
-        email,
-        password,
-        name,
-        role,
+      const response = await axios.post(`${API}/auth/register/`, { 
+        email, password, name, role
       });
-      console.log('Register response:', response.data);
       const { access_token, user: userData } = response.data;
       localStorage.setItem('token', access_token);
       setToken(access_token);
@@ -86,18 +73,11 @@ const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    console.log('Logging out...');
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
     delete axios.defaults.headers.common['Authorization'];
   };
-
-  console.log('AuthProvider user state:', user);
-
-  if (loading) {
-    return <div>Loading authentication...</div>;
-  }
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading }}>
@@ -105,7 +85,6 @@ const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
 const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
