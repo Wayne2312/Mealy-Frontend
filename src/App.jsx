@@ -1,17 +1,24 @@
 import React from 'react';
 import { useAuth } from './AuthProvider';
 import Header from './Header';
-import LoginForm from './LoginForm';
+import Home from './Home';
 import CustomerDashboard from './CustomerDashboard';
 import AdminDashboard from './AdminDashboard';
-import Home from './Home'; 
 import './App.css';
 
 const App = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  console.log('App rendering, user:', user);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   if (!user) {
     return <Home />;
   }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
