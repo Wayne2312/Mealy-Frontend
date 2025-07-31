@@ -5,7 +5,7 @@ import LoginForm from './LoginForm';
 import CustomerDashboard from './CustomerDashboard';
 import AdminDashboard from './AdminDashboard';
 import Home from './Home'; 
-import './App.css';
+import './index.css';
 
 const App = () => {
   const { user } = useAuth();
