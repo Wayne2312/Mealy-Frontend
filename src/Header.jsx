@@ -1,15 +1,8 @@
 import React from 'react';
 import { useAuth } from './AuthProvider';
-import { Link, useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   return (
     <header className="bg-white shadow-sm border-b">
