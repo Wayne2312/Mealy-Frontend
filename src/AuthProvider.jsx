@@ -64,43 +64,28 @@ const AuthProvider = ({ children }) => {
     try {
       const response = await axios.post(`${API}/auth/login/`, { email, password });
       const { access_token, user: userData } = response.data;
-      
-      // Store token
-      localStorage.setItem('token', access_token); // Ensure key is 'token'
+      localStorage.setItem('token', access_token);
       setToken(access_token);
-      
-      // Set default for future requests (good practice)
-      setAuthToken(access_token);
-      
-      // Fetch user with explicit header to ensure token is used
-      const userResponse = await axios.get(`${API}/auth/me/`, {
-        headers: {
-          'Authorization': `Bearer ${access_token}`
-        }
-      });
-      
-      // Set user state with fetched data
-      setUser(userResponse.data);
-      
-      // Navigate based on role
-      if (userResponse.data.role === 'admin') {
-        navigate('/dashboard/admin'); // Adjust path if needed
+      setUser(userData);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      if (userData.role === 'admin') {
+        navigate('/dashboard/admin');
       } else {
-        navigate('/dashboard/customer'); // Adjust path if needed
+        navigate('/dashboard/customer');
       }
-      
+
       return { success: true };
     } catch (error) {
       console.error("Login error:", error.response?.data || error.message);
-      // Clear token on error
       localStorage.removeItem('token');
       setToken(null);
-      setAuthToken(null);
+      setUser(null);
+      delete axios.defaults.headers.common['Authorization'];
       return { success: false, error: error.response?.data?.detail || 'Login failed' };
     } finally {
       setLoading(false);
     }
-  };
+};
 
   const register = async (email, password, name, role = 'customer') => {
     setLoading(true);
