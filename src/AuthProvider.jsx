@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -11,40 +12,66 @@ const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  useEffect(() => {
+  const setAuthToken = (token) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchUser();
     } else {
-      setUser(null);
       delete axios.defaults.headers.common['Authorization'];
     }
-  }, [token]);
-
-  const fetchUser = async () => {
-    try {
-      const response = await axios.get(`${API}/auth/me/`);
-      setUser(response.data);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      logout();
-    }
   };
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      setLoading(true);
+      if (token) {
+        setAuthToken(token);
+        try {
+          const response = await axios.get(`${API}/auth/me/`);
+          setUser(response.data);
+        } catch (error) {
+          console.error("Error fetching user during init:", error);
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+          setAuthToken(null);
+        }
+      } else {
+        setUser(null);
+        setAuthToken(null);
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, [token]);
 
   const login = async (email, password) => {
     setLoading(true);
     try {
       const response = await axios.post(`${API}/auth/login/`, { email, password });
       const { access_token, user: userData } = response.data;
+
       localStorage.setItem('token', access_token);
       setToken(access_token);
       setUser(userData);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      setAuthToken(access_token);
+
+      if (userData.role === 'admin') {
+        navigate('/dashboard/admin');
+      } else {
+        navigate('/dashboard/customer');
+      }
+
       return { success: true };
     } catch (error) {
       console.error("Login error:", error.response?.data || error.message);
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      setAuthToken(null);
       return { success: false, error: error.response?.data?.detail || 'Login failed' };
     } finally {
       setLoading(false);
@@ -54,17 +81,27 @@ const AuthProvider = ({ children }) => {
   const register = async (email, password, name, role = 'customer') => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/auth/register/`, { 
-        email, password, name, role
-      });
+      const response = await axios.post(`${API}/auth/register/`, { email, password, name, role });
       const { access_token, user: userData } = response.data;
+
       localStorage.setItem('token', access_token);
       setToken(access_token);
       setUser(userData);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      setAuthToken(access_token);
+
+      if (userData.role === 'admin') {
+        navigate('/dashboard/admin');
+      } else {
+        navigate('/dashboard/customer');
+      }
+
       return { success: true };
     } catch (error) {
       console.error("Registration error:", error.response?.data || error.message);
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+      setAuthToken(null);
       return { success: false, error: error.response?.data?.detail || 'Registration failed' };
     } finally {
       setLoading(false);
@@ -75,7 +112,8 @@ const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
+    setAuthToken(null);
+    navigate('/');
   };
 
   return (
@@ -84,6 +122,7 @@ const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
 const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
