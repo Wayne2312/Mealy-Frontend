@@ -95,6 +95,7 @@ const CustomerDashboard = () => {
     setPaymentError(null);
 
     try {
+      // Corrected token key from 'access_token' to 'token'
       const token = localStorage.getItem('token');
       const response = await axios.post(
         `${API}/mpesa-payment/`,
@@ -125,7 +126,7 @@ const CustomerDashboard = () => {
     }
   };
 
-
+  
   const pollPaymentStatus = async (orderId) => {
     let attempts = 0;
     const maxAttempts = 12;
