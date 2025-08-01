@@ -2,7 +2,6 @@ import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
-import './App.css'
 
 const AuthProvider = React.lazy(() => import('./AuthProvider'));
 const App = React.lazy(() => import('./App'));
@@ -29,6 +28,7 @@ const AppWithAuth = () => (
     </AuthProvider>
   </Suspense>
 );
+
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
   if (!user) {
