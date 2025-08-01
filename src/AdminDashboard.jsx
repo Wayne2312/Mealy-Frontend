@@ -30,7 +30,12 @@ const AdminDashboard = () => {
 
   const fetchMeals = async () => {
     try {
-      const response = await axios.get(`${API}/meals/`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/meals/`, {
+         headers: {
+            Authorization: `Bearer ${token}`
+          }
+      });
       setMeals(response.data);
     } catch (error) {
       console.error('Error fetching meals:', error);
@@ -39,7 +44,12 @@ const AdminDashboard = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get(`${API}/orders/`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/orders/`, {
+         headers: {
+            Authorization: `Bearer ${token}`
+          }
+      });
       setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -48,7 +58,12 @@ const AdminDashboard = () => {
 
   const fetchDailyRevenue = async () => {
     try {
-      const response = await axios.get(`${API}/orders/today/revenue/`);
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API}/orders/today/revenue/`, {
+         headers: {
+            Authorization: `Bearer ${token}`
+          }
+      });
       setDailyRevenue(response.data);
     } catch (error) {
       console.error('Error fetching revenue:', error);
@@ -59,15 +74,20 @@ const AdminDashboard = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${API}/meals/`, { 
+      const token = localStorage.getItem('token');
+      await axios.post(`${API}/meals/`, {
         ...mealForm,
         price: parseFloat(mealForm.price)
+      }, {
+         headers: {
+            Authorization: `Bearer ${token}`
+          }
       });
       setMealForm({ name: '', description: '', price: '', category: '', image_url: '' });
       await fetchMeals();
       alert('Meal created successfully!');
     } catch (error) {
-      alert('Error creating meal: ' + (error.response?.data?.detail || 'Unknown error'));
+      alert('Error creating meal: ' + (error.response?.data?.error || error.response?.data?.detail || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -78,47 +98,55 @@ const AdminDashboard = () => {
       alert('Please select at least one meal for the menu');
       return;
     }
-
     setLoading(true);
     try {
-      await axios.post(`${API}/daily-menu/`, { 
+      const token = localStorage.getItem('token');
+      await axios.post(`${API}/daily-menu/`, {
         date: menuDate,
         meal_ids: selectedMealsForMenu
+      }, {
+         headers: {
+            Authorization: `Bearer ${token}`
+          }
       });
       setSelectedMealsForMenu([]);
       alert('Daily menu created successfully!');
     } catch (error) {
-      alert('Error creating menu: ' + (error.response?.data?.detail || 'Unknown error'));
+      alert('Error creating menu: ' + (error.response?.data?.error || error.response?.data?.detail || 'Unknown error'));
     } finally {
       setLoading(false);
     }
   };
 
   const toggleMealSelection = (mealId) => {
-    setSelectedMealsForMenu(prev => 
-      prev.includes(mealId) 
+    setSelectedMealsForMenu(prev =>
+      prev.includes(mealId)
         ? prev.filter(id => id !== mealId)
         : [...prev, mealId]
     );
   };
 
   const handleDeleteMeal = async (mealId) => {
-  const meal = meals.find(m => m.id === mealId);
-
-  if (window.confirm(`Are you sure you want to delete "${meal?.name}"? This action cannot be undone.`)) {
-    setLoading(true);
-    try {
-      await axios.delete(`${API}/meals/${mealId}/`);
-      await fetchMeals();
-      alert('Meal deleted successfully!');
-    } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Unknown error';
-      alert('Error deleting meal: ' + errorMessage);
-    } finally {
-      setLoading(false);
+    const meal = meals.find(m => m.id === mealId);
+    if (window.confirm(`Are you sure you want to delete "${meal?.name}"? This action cannot be undone.`)) {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`${API}/meals/${mealId}/`, {
+           headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        await fetchMeals();
+        alert('Meal deleted successfully!');
+      } catch (error) {
+        const errorMessage = error.response?.data?.error || 'Unknown error';
+        alert('Error deleting meal: ' + errorMessage);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
-};
+  };
 
   const getDefaultImage = (category) => {
     const images = {
@@ -126,7 +154,7 @@ const AdminDashboard = () => {
       'Main Course': 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwyfHxkZWxpY2lvdXMlMjBmb29kfGVufDB8fHx8MTc1MzIxNzUzN3ww&ixlib=rb-4.1.0&q=85',
       'Burger': 'https://images.unsplash.com/photo-1600555379760-08a022e4726d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHxyZXN0YXVyYW50JTIwbWVhbHxlbnwwfHx8fDE3NTMyMTI1NTl8MA&ixlib=rb-4.1.0&q=85',
       'Dessert': 'https://images.unsplash.com/photo-1551024601-bec78aea704b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxkZWxpY2lvdXMlMjBmb29kfGVufDB8fHx8MTc1MzIxNzUzN3ww&ixlib=rb-4.1.0&q=85',
-      'default': 'Add image URL here' // Default image URL
+      'default': 'Add image URL here'
     };
     return images[category] || images['default'];
   };
@@ -137,7 +165,6 @@ const AdminDashboard = () => {
         <h2 className="text-3xl font-bold text-gray-900">Admin Dashboard</h2>
         <p className="text-gray-600">Manage your restaurant operations</p>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center">
@@ -173,7 +200,6 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-
       <div className="mb-6">
         <nav className="flex space-x-8">
           {[
@@ -195,7 +221,6 @@ const AdminDashboard = () => {
           ))}
         </nav>
       </div>
-
       {activeTab === 'meals' && (
         <div className="space-y-8">
           <div className="bg-white rounded-lg shadow-md p-6">
@@ -209,7 +234,7 @@ const AdminDashboard = () => {
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={mealForm.name}
-                  onChange={(e) => setMealForm({...mealForm, name: e.target.value})}
+                  onChange={(e) => setMealForm({ ...mealForm, name: e.target.value })}
                 />
               </div>
               <div>
@@ -218,7 +243,7 @@ const AdminDashboard = () => {
                   id="mealCategory"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={mealForm.category}
-                  onChange={(e) => setMealForm({...mealForm, category: e.target.value, image_url: getDefaultImage(e.target.value)})}
+                  onChange={(e) => setMealForm({ ...mealForm, category: e.target.value, image_url: getDefaultImage(e.target.value) })}
                 >
                   <option value="">Select Category</option>
                   <option value="Main Course">Main Course</option>
@@ -236,7 +261,7 @@ const AdminDashboard = () => {
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={mealForm.price}
-                  onChange={(e) => setMealForm({...mealForm, price: e.target.value})}
+                  onChange={(e) => setMealForm({ ...mealForm, price: e.target.value })}
                 />
               </div>
               <div>
@@ -246,7 +271,7 @@ const AdminDashboard = () => {
                   type="url"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={mealForm.image_url}
-                  onChange={(e) => setMealForm({...mealForm, image_url: e.target.value})}
+                  onChange={(e) => setMealForm({ ...mealForm, image_url: e.target.value })}
                 />
               </div>
               <div className="md:col-span-2">
@@ -257,7 +282,7 @@ const AdminDashboard = () => {
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={mealForm.description}
-                  onChange={(e) => setMealForm({...mealForm, description: e.target.value})}
+                  onChange={(e) => setMealForm({ ...mealForm, description: e.target.value })}
                 />
               </div>
               <div className="md:col-span-2">
@@ -271,14 +296,13 @@ const AdminDashboard = () => {
               </div>
             </form>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {meals.map((meal) => (
               <div key={meal.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="h-48 bg-gray-200 flex items-center justify-center">
                   {meal.image_url ? (
-                    <img 
-                      src={meal.image_url} 
+                    <img
+                      src={meal.image_url}
                       alt={meal.name}
                       className="w-full h-full object-cover"
                     />
@@ -298,7 +322,7 @@ const AdminDashboard = () => {
                   <button
                     onClick={() => handleDeleteMeal(meal.id)}
                     className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                    >
+                  >
                     Delete
                   </button>
                 </div>
@@ -307,11 +331,9 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
-
       {activeTab === 'menu' && (
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Create Daily Menu</h3>
-          
           <div className="mb-6">
             <label htmlFor="menuDate" className="block text-sm font-medium text-gray-700 mb-2">Menu Date</label>
             <input
@@ -322,7 +344,6 @@ const AdminDashboard = () => {
               onChange={(e) => setMenuDate(e.target.value)}
             />
           </div>
-
           <div className="mb-6">
             <h4 className="text-md font-medium text-gray-900 mb-3">
               Select Meals for Menu ({selectedMealsForMenu.length} selected)
@@ -341,8 +362,8 @@ const AdminDashboard = () => {
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                       {meal.image_url ? (
-                        <img 
-                          src={meal.image_url} 
+                        <img
+                          src={meal.image_url}
                           alt={meal.name}
                           className="w-full h-full object-cover"
                         />
@@ -368,7 +389,6 @@ const AdminDashboard = () => {
               ))}
             </div>
           </div>
-
           <button
             onClick={createDailyMenu}
             disabled={loading || selectedMealsForMenu.length === 0}
@@ -378,7 +398,6 @@ const AdminDashboard = () => {
           </button>
         </div>
       )}
-
       {activeTab === 'orders' && (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
