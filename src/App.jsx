@@ -2,7 +2,8 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider, useAuth } from './AuthProvider';
+import { AuthProvider, useAuth } from './AuthProvider'; // Adjust path if needed
+import LoginForm from './LoginForm';
 import CustomerDashboard from './CustomerDashboard';
 import AdminDashboard from './AdminDashboard';
 import Home from './Home';
