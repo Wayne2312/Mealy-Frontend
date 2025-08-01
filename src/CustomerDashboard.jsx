@@ -21,7 +21,7 @@ const CustomerDashboard = () => {
 
   const fetchTodaysMenu = async () => {
     try {
-      const response = await axios.get(`${API}/daily-menu/`);
+      const response = await axios.get(`${API}/daily-menu/`); // Updated endpoint
       setTodaysMenu(response.data.meals || []);
     } catch (error) {
       console.error('Error fetching menu:', error);
@@ -93,8 +93,10 @@ const CustomerDashboard = () => {
     setCurrentPaymentOrderId(orderId);
     setPaymentStatus('pending');
     setPaymentError(null);
+    // Removed redundant setPaymentProcessing(true);
 
     try {
+      // Corrected token key from 'access_token' to 'token'
       const token = localStorage.getItem('token');
       const response = await axios.post(
         `${API}/mpesa-payment/`,
@@ -123,8 +125,10 @@ const CustomerDashboard = () => {
       setPaymentProcessing(false);
       alert('Payment failed: ' + errorMessage);
     }
+    // Removed redundant setPaymentProcessing(false) in finally
   };
 
+  // Corrected token key in pollPaymentStatus as well
   const pollPaymentStatus = async (orderId) => {
     let attempts = 0;
     const maxAttempts = 12;

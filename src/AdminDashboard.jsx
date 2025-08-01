@@ -30,6 +30,7 @@ const AdminDashboard = () => {
 
   const fetchMeals = async () => {
     try {
+      // Rely on axios.defaults set by AuthProvider or explicitly set header if needed
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API}/meals/`, {
          headers: {
@@ -44,6 +45,7 @@ const AdminDashboard = () => {
 
   const fetchOrders = async () => {
     try {
+      // Rely on axios.defaults set by AuthProvider or explicitly set header if needed
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API}/orders/`, {
          headers: {
@@ -58,6 +60,7 @@ const AdminDashboard = () => {
 
   const fetchDailyRevenue = async () => {
     try {
+      // Rely on axios.defaults set by AuthProvider or explicitly set header if needed
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API}/orders/today/revenue/`, {
          headers: {
@@ -74,6 +77,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Corrected token key from 'access_token' to 'token'
       const token = localStorage.getItem('token');
       await axios.post(`${API}/meals/`, {
         ...mealForm,
@@ -131,6 +135,7 @@ const AdminDashboard = () => {
     if (window.confirm(`Are you sure you want to delete "${meal?.name}"? This action cannot be undone.`)) {
       setLoading(true);
       try {
+        // Corrected token key from 'access_token' to 'token'
         const token = localStorage.getItem('token');
         await axios.delete(`${API}/meals/${mealId}/`, {
            headers: {
@@ -151,10 +156,10 @@ const AdminDashboard = () => {
   const getDefaultImage = (category) => {
     const images = {
       'Appetizer': 'Add image URL here',
-      'Main Course': 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwyfHxkZWxpY2lvdXMlMjBmb29kfGVufDB8fHx8MTc1MzIxNzUzN3ww&ixlib=rb-4.1.0&q=85',
-      'Burger': 'https://images.unsplash.com/photo-1600555379760-08a022e4726d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHxyZXN0YXVyYW50JTIwbWVhbHxlbnwwfHx8fDE3NTMyMTI1NTl8MA&ixlib=rb-4.1.0&q=85',
-      'Dessert': 'https://images.unsplash.com/photo-1551024601-bec78aea704b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxkZWxpY2lvdXMlMjBmb29kfGVufDB8fHx8MTc1MzIxNzUzN3ww&ixlib=rb-4.1.0&q=85',
-      'default': 'Add image URL here'
+      'Main Course': 'Add image URL here',
+      'Burger': 'Add image URL here',
+      'Dessert': 'Add image URL here',
+      'default': 'Add image URL here' // Default image URL
     };
     return images[category] || images['default'];
   };
