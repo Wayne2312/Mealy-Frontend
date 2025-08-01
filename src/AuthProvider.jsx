@@ -27,46 +27,52 @@ const AuthProvider = ({ children }) => {
 
 
     const login = async (email, password) => {
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API}/auth/login/`, { email, password });
-      const { access_token, user: userData } = response.data;
-      localStorage.setItem('token', access_token);
-      setToken(access_token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      const authHeader = `Bearer ${access_token}`;
-      const userResponse = await axios.get(`${API}/auth/me/`, {
-        headers: {
-          'Authorization': authHeader
+      setLoading(true);
+        try {
+        const response = await axios.post(`${API}/auth/login/`, { email, password });
+        const { access_token, user: userData } = response.data;
+        localStorage.setItem('token', access_token);
+        setToken(access_token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+        const authHeader = `Bearer ${access_token}`;
+        const userResponse = await axios.get(`${API}/auth/me/`, {
+          headers: {
+            'Authorization': authHeader
+          }
+        });
+        setUser(userResponse.data);
+        if (userResponse.data.role === 'admin') {
+          navigate('/dashboard/admin');
+        } else {
+          navigate('/dashboard/customer');
         }
-      });
-      setUser(userResponse.data);
-      if (userResponse.data.role === 'admin') {
-        navigate('/dashboard/admin');
-      } else {
-        navigate('/dashboard/customer');
-      }
-      return { success: true };
-    } catch (error) {
-      console.error("Login error:", error.response?.data || error.message);
-      localStorage.removeItem('token');
-      setToken(null);
-      delete axios.defaults.headers.common['Authorization'];
-      return { success: false, error: error.response?.data?.detail || 'Login failed' };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUser = async () => {
-      try {
-        const response = await axios.get(`${API}/auth/me/`);
-        setUser(response.data);
-      } catch (error) {
-        console.error("Error fetching user:", error.response?.status, error.response?.data);
-        logout();
+          return { success: true };
+        } catch (error) {
+        console.error("Login error:", error.response?.data || error.message);
+        localStorage.removeItem('token');
+        setToken(null);
+        delete axios.defaults.headers.common['Authorization'];
+        return { success: false, error: error.response?.data?.detail || 'Login failed' };
+      } finally {
+        setLoading(false);
       }
     };
+
+    const fetchUser = async () => {
+    try {
+      const tokenToUse = token || localStorage.getItem('token');
+      const response = await axios.get(`${API}/auth/me/`, {
+        headers: tokenToUse ? {
+          'Authorization': `Bearer ${tokenToUse}`
+        } : {}
+      });
+      console.log('fetchUser response:', response.data);
+      setUser(response.data);
+    } catch (error) {
+      console.error("Error fetching user:", error.response?.status, error.response?.data);
+      logout();
+    }
+  };
 
   const register = async (email, password, name, role = 'customer') => {
     setLoading(true);
